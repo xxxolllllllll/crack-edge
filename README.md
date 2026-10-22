@@ -63,6 +63,11 @@ android/app/src/main/java/com/gzt/crackedge/
 
 > 这是研究检查点，精度不是本仓库的 SOTA 声明。论文中的 5 折结果与仓库内检查点可能不是同一份权重，请以模型卡片为准。
 
+## 下载
+
+- [GitHub Releases](https://github.com/xxxolllllllll/crack-edge/releases)
+- 当前 `v0.1.0` 为 debug 签名，仅用于测试
+
 ## 构建
 
 要求：
