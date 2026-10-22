@@ -1,6 +1,9 @@
 # 架构
 
-## 分层
+## 主线程对象协作图
+
+![主线程对象协作](images/main_thread_objects.png)
+
 
 ```text
 UI（MainActivity）
