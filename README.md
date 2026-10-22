@@ -1,5 +1,7 @@
 # CrackEdge
 
+![Android CI](https://github.com/xxxolllllllll/crack-edge/actions/workflows/android.yml/badge.svg)
+
 面向古建筑木构件裂缝的 **Android 离线检测 App**：拍照后在手机本地完成 1024×1024 裂缝分割，不依赖网络，图像和模型不出本地。
 
 > 这是论文配套的研究原型，不是生产级 App。模型精度、机型兼容性和现场效果仍在持续验证。
@@ -159,8 +161,8 @@ adb pull /sdcard/Android/data/com.gzt.crackedge/files/logs/app.log
   title  = {CrackEdge: Android offline crack detection for historic timber members},
   author = {Zeng, Guangtao},
   year   = {2026},
-  url    = {https://github.com/OWNER/crack-edge}
+  url    = {https://github.com/xxxolllllllll/crack-edge}
 }
 ```
 
-请把 `OWNER` 替换为实际 GitHub 用户名。
+
