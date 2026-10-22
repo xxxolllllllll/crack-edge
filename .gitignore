@@ -1,0 +1,37 @@
+# Android / Gradle
+*.iml
+.gradle/
+local.properties
+.idea/
+.DS_Store
+build/
+captures/
+.externalNativeBuild/
+.cxx/
+*.apk
+*.aab
+*.ap_
+*.dex
+*.class
+
+# Signing
+*.jks
+*.keystore
+keystore.properties
+
+# Logs / metrics / results
+*.log
+logs/
+metrics.csv
+results/
+benchmarks/*.csv
+
+# Python / model tooling
+__pycache__/
+*.pyc
+.venv/
+venv/
+venv_tf/
+
+# OS
+Thumbs.db

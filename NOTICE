@@ -1,0 +1,37 @@
+# NOTICE
+
+CrackEdge
+Copyright 2026 Zeng Guangtao
+
+## Code
+
+The source code in this repository is licensed under the Apache License 2.0.
+See LICENSE.
+
+## Model weights
+
+The TFLite weights in `android/app/src/main/assets/` are research artifacts
+produced for the accompanying thesis. They are provided for research and
+evaluation. Contact the author for other uses.
+
+The model was trained with:
+- a self-built annotated dataset of historic timber-member cracks;
+- the public Bridge Crack Dataset (unlabeled images, Stage A only).
+
+## Bridge Crack Dataset
+
+Bridge Crack Dataset is distributed under CC BY 4.0:
+
+- DOI: https://doi.org/10.5281/zenodo.17905739
+- The dataset is not redistributed in this repository. Only the trained
+  model weights are included.
+
+## Third-party components
+
+- AndroidX / CameraX: Apache License 2.0
+- TensorFlow Lite: Apache License 2.0
+- Ultralytics YOLO11: AGPL-3.0 (training-time dependency; see upstream)
+- DINOv3: see upstream license
+
+Users are responsible for complying with the upstream licenses of any
+third-party models or datasets they use with this code.

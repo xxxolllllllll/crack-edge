@@ -1,0 +1,18 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "CrackEdge: Android offline crack detection for historic timber members"
+abstract: "A capture-and-analyze Android app for offline crack segmentation of historic timber components using a YOLOv11-U-Net student and TFLite FP16."
+authors:
+  - family-names: "Zeng"
+    given-names: "Guangtao"
+version: "0.1.0"
+date-released: "2026-10-22"
+license: "Apache-2.0"
+repository-code: "https://github.com/OWNER/crack-edge"
+keywords:
+  - crack segmentation
+  - historic timber
+  - knowledge distillation
+  - Android
+  - TensorFlow Lite
+  - offline inference

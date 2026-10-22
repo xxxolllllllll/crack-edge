@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@android:color/black">
+
+    <androidx.camera.view.PreviewView
+        android:id="@+id/preview"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        app:layout_constraintDimensionRatio="4:3"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <ImageView
+        android:id="@+id/resultView"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:visibility="gone"
+        android:scaleType="fitCenter"
+        android:background="@android:color/black"
+        app:layout_constraintTop_toTopOf="@id/preview"
+        app:layout_constraintBottom_toBottomOf="@id/preview"
+        app:layout_constraintStart_toStartOf="@id/preview"
+        app:layout_constraintEnd_toEndOf="@id/preview" />
+
+    <TextView
+        android:id="@+id/stats"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:paddingHorizontal="16dp"
+        android:fontFamily="monospace"
+        android:textColor="#00FF88"
+        android:textSize="13sp"
+        android:text="对准裂缝后点击“拍照检测”"
+        app:layout_constraintTop_toBottomOf="@id/preview" />
+
+    <RadioGroup
+        android:id="@+id/modeGroup"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:paddingHorizontal="12dp"
+        android:orientation="horizontal"
+        app:layout_constraintTop_toBottomOf="@id/stats">
+
+        <RadioButton
+            android:id="@+id/modeRoi"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:checked="true"
+            android:textColor="#FFFFFF"
+            android:text="单 ROI（1024）" />
+
+        <RadioButton
+            android:id="@+id/modeFull"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:textColor="#FFFFFF"
+            android:text="整图滑窗（1024）" />
+    </RadioGroup>
+
+    <TextView
+        android:id="@+id/thrLabel"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingHorizontal="16dp"
+        android:textColor="#FFFFFF"
+        android:textSize="13sp"
+        android:text="threshold: 0.50"
+        app:layout_constraintTop_toBottomOf="@id/modeGroup" />
+
+    <SeekBar
+        android:id="@+id/thr"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="16dp"
+        android:max="90"
+        android:progress="45"
+        app:layout_constraintTop_toBottomOf="@id/thrLabel" />
+
+    <ProgressBar
+        android:id="@+id/progress"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="16dp"
+        android:visibility="gone"
+        app:layout_constraintTop_toBottomOf="@id/thr" />
+
+    <LinearLayout
+        android:id="@+id/row1"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:paddingHorizontal="12dp"
+        android:orientation="horizontal"
+        app:layout_constraintTop_toBottomOf="@id/progress">
+
+        <Button
+            android:id="@+id/captureBtn"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:text="拍照检测" />
+
+        <Button
+            android:id="@+id/resultsBtn"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:enabled="false"
+            android:text="本次历史 (0)" />
+
+        <Button
+            android:id="@+id/saveBtn"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:enabled="false"
+            android:text="保存结果" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/row2"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingHorizontal="12dp"
+        android:orientation="horizontal"
+        app:layout_constraintTop_toBottomOf="@id/row1">
+
+        <Button
+            android:id="@+id/prevBtn"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:enabled="false"
+            android:text="上一张" />
+
+        <Button
+            android:id="@+id/retakeBtn"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:enabled="false"
+            android:text="返回取景" />
+
+        <Button
+            android:id="@+id/nextBtn"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:enabled="false"
+            android:text="下一张" />
+    </LinearLayout>
+
+
+    <TextView
+        android:id="@+id/modelInfo"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:paddingHorizontal="16dp"
+        android:textColor="#AAAAAA"
+        android:textSize="11sp"
+        android:text="模型加载中..."
+        app:layout_constraintTop_toBottomOf="@id/row2" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>
