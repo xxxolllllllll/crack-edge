@@ -14,10 +14,11 @@ Android 7.0（API 24）及以上
 sdk.dir=/path/to/Android/Sdk
 ```
 
-## 构建
+## 构建与测试
 
 ```bash
 cd android
+./gradlew testDebugUnitTest
 ./gradlew assembleDebug
 ```
 

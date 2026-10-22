@@ -2,7 +2,6 @@ package com.gzt.crackedge;
 
 import android.Manifest;
 import android.content.pm.PackageManager;
-import android.content.res.AssetFileDescriptor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
@@ -21,29 +20,15 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.camera.core.AspectRatio;
-import androidx.camera.core.CameraSelector;
-import androidx.camera.core.ImageCapture;
-import androidx.camera.core.ImageCaptureException;
 import androidx.camera.core.ImageProxy;
-import androidx.camera.core.Preview;
-import androidx.camera.lifecycle.ProcessCameraProvider;
 import androidx.camera.view.PreviewView;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
-import com.google.common.util.concurrent.ListenableFuture;
-
-import org.tensorflow.lite.Interpreter;
-
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
-import java.nio.FloatBuffer;
-import java.nio.channels.FileChannel;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -58,10 +43,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 /**
  * Accuracy-first, capture-and-analyze crack detector.
  *
- * Capture and inference are decoupled:
- *   captureExecutor: camera callback + JPEG decode + rotation
- *   inferExecutor:   ROI / sliding-window inference, one at a time
- *   results:         history of finished results, browsable while shooting
+ * CameraController owns CameraX; CrackDetector owns TFLite; SlidingWindowEngine
+ * is pure geometry/stitching; this class only orchestrates UI and background work.
  */
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = AppConfig.TAG;
@@ -89,14 +72,11 @@ public class MainActivity extends AppCompatActivity {
     private Button prevBtn;
     private Button nextBtn;
 
-    private Interpreter interpreter;
-    private ByteBuffer inputBuffer;
-    private ByteBuffer outputBuffer;
-    private final int[] tilePixels = new int[SIZE * SIZE];
+    private CameraController cameraController;
+    private CrackDetector detector;
     private Bitmap tileBitmap;
     private Canvas tileCanvas;
 
-    private ImageCapture imageCapture;
     private ExecutorService captureExecutor;
     private ExecutorService inferExecutor;
     private final AtomicInteger pending = new AtomicInteger(0);
@@ -161,12 +141,7 @@ public class MainActivity extends AppCompatActivity {
                 AppConfig.MODEL_SOURCE, AppConfig.MODEL_INPUT_SIZE);
         metricsLogger = new MetricsLogger(this, modelInfo);
         try {
-            interpreter = new Interpreter(loadModel(MODEL_ASSET),
-                    new Interpreter.Options().setNumThreads(4));
-            inputBuffer = ByteBuffer.allocateDirect(SIZE * SIZE * 3 * 4)
-                    .order(ByteOrder.nativeOrder());
-            outputBuffer = ByteBuffer.allocateDirect(SIZE * SIZE * 2 * 4)
-                    .order(ByteOrder.nativeOrder());
+            detector = new CrackDetector(this, MODEL_ASSET, SIZE, 4);
             AppLogger.i(TAG, "model loaded: " + MODEL_ASSET);
             modelInfoView.setText(modelInfo.summary());
             captureExecutor.execute(() -> {
@@ -201,39 +176,10 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private ByteBuffer loadModel(String asset) throws IOException {
-        AssetFileDescriptor fd = getAssets().openFd(asset);
-        try (FileInputStream is = fd.createInputStream()) {
-            FileChannel ch = is.getChannel();
-            return ch.map(FileChannel.MapMode.READ_ONLY, fd.getStartOffset(), fd.getDeclaredLength());
-        } finally {
-            fd.close();
-        }
-    }
-
     private void startCamera() {
-        ListenableFuture<ProcessCameraProvider> future = ProcessCameraProvider.getInstance(this);
-        future.addListener(() -> {
-            try {
-                ProcessCameraProvider provider = future.get();
-                Preview preview = new Preview.Builder()
-                        .setTargetAspectRatio(AspectRatio.RATIO_4_3)
-                        .build();
-                preview.setSurfaceProvider(previewView.getSurfaceProvider());
-
-                imageCapture = new ImageCapture.Builder()
-                        .setCaptureMode(ImageCapture.CAPTURE_MODE_MAXIMIZE_QUALITY)
-                        .setTargetRotation(getWindowManager().getDefaultDisplay().getRotation())
-                        .build();
-
-                provider.unbindAll();
-                provider.bindToLifecycle(this, CameraSelector.DEFAULT_BACK_CAMERA,
-                        preview, imageCapture);
-            } catch (Exception e) {
-                AppLogger.e(TAG, "camera start failed", e);
-                Toast.makeText(this, "相机启动失败: " + e.getMessage(), Toast.LENGTH_LONG).show();
-            }
-        }, ContextCompat.getMainExecutor(this));
+        cameraController = new CameraController(this, previewView);
+        cameraController.start(e -> runOnUiThread(() ->
+                Toast.makeText(this, "相机启动失败: " + e.getMessage(), Toast.LENGTH_LONG).show()));
     }
 
     /**
@@ -241,7 +187,14 @@ public class MainActivity extends AppCompatActivity {
      * this JPEG has been decoded and queued; inference runs in the background.
      */
     private void capture() {
-        if (imageCapture == null) return;
+        if (detector == null) {
+            Toast.makeText(this, "模型未加载", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        if (cameraController == null || !cameraController.isReady()) {
+            Toast.makeText(this, "相机未就绪", Toast.LENGTH_SHORT).show();
+            return;
+        }
         if (pending.get() >= MAX_PENDING) {
             Toast.makeText(this, "后台还有检测未完成，请稍候", Toast.LENGTH_SHORT).show();
             return;
@@ -252,9 +205,9 @@ public class MainActivity extends AppCompatActivity {
         captureBtn.setEnabled(false);
         statsView.setText("正在拍摄...（待处理 " + pending.get() + "）");
 
-        imageCapture.takePicture(captureExecutor, new ImageCapture.OnImageCapturedCallback() {
+        cameraController.takePicture(captureExecutor, new CameraController.CaptureCallback() {
             @Override
-            public void onCaptureSuccess(@NonNull ImageProxy image) {
+            public void onCaptured(@NonNull ImageProxy image) {
                 Bitmap rotated;
                 long decodeMs;
                 long tDecode = SystemClock.elapsedRealtime();
@@ -300,7 +253,7 @@ public class MainActivity extends AppCompatActivity {
             }
 
             @Override
-            public void onError(@NonNull ImageCaptureException e) {
+            public void onError(@NonNull Exception e) {
                 AppLogger.e(TAG, "capture error", e);
                 pending.decrementAndGet();
                 captureInFlight.set(false);
@@ -353,15 +306,13 @@ public class MainActivity extends AppCompatActivity {
         tileCanvas.drawBitmap(crop, 0, 0, null);
 
         long ti = SystemClock.elapsedRealtime();
-        runTile();
+        float[] prob = new float[SIZE * SIZE];
+        detector.predict(tileBitmap, prob);
         long infer = SystemClock.elapsedRealtime() - ti;
 
-        float[] prob = new float[SIZE * SIZE];
         int crack = 0;
         for (int i = 0; i < prob.length; i++) {
-            float p = crackProb(i);
-            prob[i] = p;
-            if (p >= threshold) crack++;
+            if (prob[i] >= threshold) crack++;
         }
         float ratio = 100f * crack / prob.length;
 
@@ -381,9 +332,10 @@ public class MainActivity extends AppCompatActivity {
         int w = image.getWidth(), h = image.getHeight();
         float[] prob = new float[w * h];
         byte[] count = new byte[w * h];
-        List<Integer> xs = starts(w);
-        List<Integer> ys = starts(h);
-        int totalTiles = xs.size() * ys.size();
+        int[] xs = SlidingWindowEngine.starts(w, SIZE, STRIDE);
+        int[] ys = SlidingWindowEngine.starts(h, SIZE, STRIDE);
+        int totalTiles = xs.length * ys.length;
+        float[] tileProb = new float[SIZE * SIZE];
         long inferTotal = 0;
 
         runOnUiThread(() -> {
@@ -400,21 +352,14 @@ public class MainActivity extends AppCompatActivity {
                 tileCanvas.drawBitmap(image, -x, -y, null);
 
                 long ti = SystemClock.elapsedRealtime();
-                runTile();
+                detector.predict(tileBitmap, tileProb);
                 inferTotal += SystemClock.elapsedRealtime() - ti;
 
                 int cw = Math.min(SIZE, w - x);
                 int ch = Math.min(SIZE, h - y);
-                for (int yy = 0; yy < ch; yy++) {
-                    int srcRow = yy * SIZE;
-                    int dstRow = (y + yy) * w + x;
-                    for (int xx = 0; xx < cw; xx++) {
-                        int pi = srcRow + xx;
-                        int di = dstRow + xx;
-                        prob[di] += crackProb(pi);
-                        count[di]++;
-                    }
-                }
+                SlidingWindowEngine.accumulate(prob, count, tileProb,
+                        SIZE, SIZE, w, x, y, cw, ch);
+
                 done++;
                 final int d = done;
                 final long inferSoFar = inferTotal;
@@ -427,9 +372,9 @@ public class MainActivity extends AppCompatActivity {
         }
 
         long tPost = SystemClock.elapsedRealtime();
+        SlidingWindowEngine.average(prob, count);
         int crack = 0;
         for (int i = 0; i < prob.length; i++) {
-            prob[i] /= Math.max(count[i], 1);
             if (prob[i] >= threshold) crack++;
         }
         float ratio = 100f * crack / prob.length;
@@ -443,38 +388,6 @@ public class MainActivity extends AppCompatActivity {
                 STRIDE, totalTiles, inferTotal / 1000f, total / 1000f, ratio, threshold);
         runOnUiThread(() -> progressBar.setVisibility(ProgressBar.GONE));
         return new Result(composite, summary);
-    }
-
-    private void runTile() {
-        tileBitmap.getPixels(tilePixels, 0, SIZE, 0, 0, SIZE, SIZE);
-        FloatBuffer fb = inputBuffer.asFloatBuffer();
-        fb.rewind();
-        for (int p : tilePixels) {
-            fb.put(((p >> 16) & 0xFF) / 255f);
-            fb.put(((p >> 8) & 0xFF) / 255f);
-            fb.put((p & 0xFF) / 255f);
-        }
-        inputBuffer.rewind();
-        outputBuffer.rewind();
-        interpreter.run(inputBuffer, outputBuffer);
-    }
-
-    private float crackProb(int pixelIndex) {
-        int base = pixelIndex * 2 * 4;
-        float z0 = outputBuffer.getFloat(base);
-        float z1 = outputBuffer.getFloat(base + 4);
-        return 1f / (1f + (float) Math.exp(z0 - z1));
-    }
-
-    private static List<Integer> starts(int length) {
-        List<Integer> out = new ArrayList<>();
-        if (length <= SIZE) {
-            out.add(0);
-            return out;
-        }
-        for (int p = 0; p <= length - SIZE; p += STRIDE) out.add(p);
-        if (out.get(out.size() - 1) != length - SIZE) out.add(length - SIZE);
-        return out;
     }
 
     private Bitmap composite(Bitmap src, float[] prob, int probW, int probH) {
@@ -661,9 +574,10 @@ public class MainActivity extends AppCompatActivity {
     protected void onDestroy() {
         super.onDestroy();
         AppLogger.i(TAG, "onDestroy");
+        if (cameraController != null) cameraController.shutdown();
         if (captureExecutor != null) captureExecutor.shutdown();
         if (inferExecutor != null) inferExecutor.shutdown();
         if (metricsLogger != null) metricsLogger.close();
-        if (interpreter != null) interpreter.close();
+        if (detector != null) detector.close();
     }
 }

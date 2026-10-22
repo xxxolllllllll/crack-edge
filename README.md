@@ -39,6 +39,9 @@ CameraX ImageCapture
 ```text
 android/app/src/main/java/com/gzt/crackedge/
 ├── MainActivity.java       UI 与流程编排
+├── CameraController.java   CameraX 预览/拍照/生命周期
+├── CrackDetector.java      TFLite 加载/单 tile 推理
+├── SlidingWindowEngine.java 切窗/概率累加/平均（纯函数）
 ├── AppConfig.java          常量配置
 ├── AppLogger.java          logcat + 文件日志
 ├── MetricsLogger.java      metrics.csv
@@ -146,6 +149,8 @@ adb pull /sdcard/Android/data/com.gzt.crackedge/files/logs/app.log
 - [x] 会话历史 / PNG 保存
 - [x] 日志 / 指标 / 崩溃日志 / 模型 SHA256
 - [x] Gradle Wrapper / CI
+- [x] CameraController / CrackDetector / SlidingWindowEngine 拆分
+- [x] SlidingWindowEngine 单元测试
 - [ ] 真机多机型基准
 - [ ] Release 签名与正式发布
 - [ ] 小模型（YOLO11n/s）消融

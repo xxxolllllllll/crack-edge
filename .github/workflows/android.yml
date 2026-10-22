@@ -22,6 +22,10 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v3
 
+      - name: Unit tests
+        working-directory: android
+        run: ./gradlew testDebugUnitTest --stacktrace
+
       - name: Build debug APK
         working-directory: android
         run: ./gradlew assembleDebug --stacktrace

@@ -2,6 +2,20 @@
 
 All notable changes to this project are documented here.
 
+## [0.2.0] - 2026-10-22
+
+### Changed
+
+- Split CameraX into `CameraController`.
+- Split TFLite loading and single-tile inference into `CrackDetector`.
+- Split sliding-window geometry and probability stitching into `SlidingWindowEngine`.
+- `MainActivity` now only orchestrates UI and background work.
+
+### Added
+
+- JUnit tests for `SlidingWindowEngine` (window starts, overlap accumulation, average).
+- CI now runs `testDebugUnitTest` before building the APK.
+
 ## [0.1.0] - 2026-10-22
 
 ### Added
