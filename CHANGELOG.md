@@ -2,6 +2,19 @@
 
 All notable changes to this project are documented here.
 
+## [0.3.0] - 2026-10-26
+
+### Changed
+
+- Replace the 22.35 M YOLOv11m fold-1 model with the 5.18 M YOLOv11n fold-0 distilled model.
+- TFLite FP16 asset shrinks from ~43 MB to ~10 MB.
+- Update model card, SHA256 and README accuracy notes.
+
+### Added
+
+- fold-0 YOLOv11n deployment checkpoint (mIoU 0.6138; 5-fold 0.6047 ± 0.0105).
+- FP16 conversion consistency check (argmax agreement 100%).
+
 ## [0.2.0] - 2026-10-22
 
 ### Changed

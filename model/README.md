@@ -3,14 +3,14 @@
 ## 文件
 
 ```text
-android/app/src/main/assets/best_fold1_1024_fp16.tflite
+android/app/src/main/assets/yolo11n_fold0_1024_fp16.tflite
 ```
 
 | 项目 | 内容 |
 |---|---|
-| 大小 | 约 43 MB |
-| 结构 | YOLOv11-U-Net 语义分割学生 |
-| 参数量 | 约 22.35 M |
+| 大小 | 约 10 MB（10,188 KB） |
+| 结构 | YOLOv11n-U-Net 语义分割学生 |
+| 参数量 | 约 5.18 M |
 | 输入 | `[1, 1024, 1024, 3]` float32，NHWC，0–1 |
 | 输出 | `[1, 1024, 1024, 2]` float32 logits |
 | 格式 | FP16 权重，float32 计算 |
@@ -20,14 +20,14 @@ android/app/src/main/assets/best_fold1_1024_fp16.tflite
 SHA256：
 
 ```text
-a53dfb7147c4851085a837ee929f97ddfaa4f172bbb013a151d86b4679cede57
+0f7f98942bd08aab5d7ea6778c1a3ce78d21da996124afb922e6c4b522a32275
 ```
 
 见 [SHA256SUMS](SHA256SUMS)。
 
 ## 来源
 
-该检查点属于论文中的 S3 学生模型（阶段 B 适配教师 + 特征蒸馏 + 注意力蒸馏，λ_attn=0.2）的 fold-1 版本。它是研究原型权重，不等同于论文 5 折实验中的均值模型；使用前请核对论文与实际检查点。
+该检查点属于论文中的 YOLOv11n-U-Net 蒸馏学生（阶段 B 适配教师 + 特征蒸馏 + 裂缝区域注意力蒸馏，λ_feat=1.0、λ_attn=0.2）的 **fold-0** 版本。训练时使用 fold-1～fold-4，fold-0 仅作为折外测试集。
 
 训练数据：
 
@@ -36,43 +36,58 @@ a53dfb7147c4851085a837ee929f97ddfaa4f172bbb013a151d86b4679cede57
 
 数据与论文的对应关系见大论文第二章。
 
+## 精度
+
+fold-0 折外测试集（1024 窗口、512 步长、阈值 0.5）：
+
+```text
+mIoU      0.6138
+F1        0.7607
+Precision 0.7233
+Recall    0.8020
+```
+
+5 折交叉验证：
+
+```text
+YOLOv11n: 0.6047 ± 0.0105
+YOLOv11m: 0.6145 ± 0.0119
+S0 (m):   0.5429 ± 0.0180
+```
+
+n 学生与 m 学生的 5 折差异不显著（p=0.192），但参数量减少 76.8%。该模型不是 SOTA：CrackMamba（0.6835）与 SCSegamba（0.6572）在 fold-0 上更高，本仓库定位为可复现的轻量蒸馏基线。
+
 ## 转换链路
 
 ```text
-PyTorch best.pt
+PyTorch best.pt (fold-0, YOLOv11n-U-Net)
   → ONNX 1024×1024, opset 17
-  → onnxsim
   → onnx2tf
   → TFLite FP16
-  → app/src/main/assets/best_fold1_1024_fp16.tflite
+  → app/src/main/assets/yolo11n_fold0_1024_fp16.tflite
 ```
 
 参考命令（训练仓库路径需按实际修改）：
 
 ```bash
-python export_onnx.py \
-  --ckpt best.pt \
-  --out best_fold1_1024.onnx \
+python3 deploy/export_onnx.py \
+  --ckpt runs/kfold/fold0/yolov11nKD/yolo11n_KD/best.pt \
+  --out deploy/models/yolo11n_fold0_1024.onnx \
   --imgsz 1024 --check
 
-onnxsim best_fold1_1024.onnx best_fold1_1024_sim.onnx
-onnx2tf -i best_fold1_1024_sim.onnx -o tflite_out -osd -coion
-python make_tflite_int8.py \
-  --saved-model tflite_out \
-  --calib-npy calib_1024.npy \
-  --out best_fold1_1024_fp16.tflite
+onnx2tf -i deploy/models/yolo11n_fold0_1024.onnx \
+  -o deploy/tflite/yolo11n_fold0_1024 -osd -coion
 ```
 
-## 精度说明
+输出文件为 `yolo11n_fold0_1024_float16.tflite`。
 
-本仓库不声称该检查点是 SOTA。论文中的 5 折蒸馏学生结果为：
+FP16 转换一致性抽检（同一随机输入）：
 
 ```text
-S0:   0.5429 ± 0.0180
-Ours: 0.6145 ± 0.0119
+ONNX vs TFLite max_abs = 1.71e-3
+argmax agreement      = 100.000%
+sigmoid probability Δ = 9.2e-6
 ```
-
-但仓库内是 fold-1 检查点，干净评测应使用 fold-1 折外测试集，不能用与训练集重叠的图像评估。具体数字以论文和评测脚本为准。
 
 ## 许可
 

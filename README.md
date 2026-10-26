@@ -11,7 +11,7 @@
 - **拍照式检测**：CameraX 拍摄高分辨率照片，避免实时视频流的低分辨率与抖动
 - **单 ROI 精测**：中心裁剪 1024×1024 原生像素，一次推理
 - **整图滑窗普查**：1024 窗口 / 512 步长，逐 tile 推理并拼接概率图
-- **FP16 TFLite**：约 43 MB，float32 输入/输出，CPU 4 线程
+- **FP16 TFLite**：约 10 MB，YOLOv11n-U-Net（5.18 M），float32 输入/输出，CPU 4 线程
 - **会话历史**：最多 10 张，上一张/下一张回看
 - **结果保存**：PNG 写入 App 私有目录，不申请相册权限
 - **可观测性**：文件日志、metrics.csv、崩溃日志、模型 SHA256
@@ -55,21 +55,22 @@ android/app/src/main/java/com/gzt/crackedge/
 
 | 项目 | 内容 |
 |---|---|
-| 文件 | `android/app/src/main/assets/best_fold1_1024_fp16.tflite` |
-| 大小 | 约 43 MB |
+| 文件 | `android/app/src/main/assets/yolo11n_fold0_1024_fp16.tflite` |
+| 大小 | 约 10 MB |
 | 输入 | `[1, 1024, 1024, 3]` float32，NHWC，0–1 |
 | 输出 | `[1, 1024, 1024, 2]` float32 logits |
 | 格式 | FP16 权重，float32 计算 |
-| 结构 | YOLOv11-U-Net 语义分割学生，约 22.35 M 参数 |
+| 结构 | YOLOv11n-U-Net 语义分割学生，约 5.18 M 参数 |
+| 精度 | fold-0 mIoU 0.6138；5 折 0.6047 ± 0.0105 |
 
 模型来源、转换命令和校验和见 [model/README.md](model/README.md)。
 
-> 这是研究检查点，精度不是本仓库的 SOTA 声明。论文中的 5 折结果与仓库内检查点可能不是同一份权重，请以模型卡片为准。
+> 这是 fold-0 检查点的部署版本，精度不是本仓库的 SOTA 声明。该检查点在 fold-0 折外测试集上 mIoU 0.6138；论文 5 折均值为 0.6047 ± 0.0105。请以模型卡片为准。
 
 ## 下载
 
 - [GitHub Releases](https://github.com/xxxolllllllll/crack-edge/releases)
-- 当前 `v0.1.0` 为 debug 签名，仅用于测试
+- 当前 `v0.3.0` 为 debug 签名，仅用于测试
 
 ## 构建
 
